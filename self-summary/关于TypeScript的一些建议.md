@@ -108,8 +108,108 @@ type Shape = Circle | Square;
 
 反观后者，虽然写起来略复杂，但很清晰得表达出了类型的信息。当确定kind为circle的情况下，radius就一定有值。
 
-另外，还有一些场景建议不要轻易使用optional的字断：
-
-***回调函数请勿轻易使用optional参数，除非你非常确定需要使用***
+## 5.回调函数请勿轻易使用optional参数，除非你十分确定需要使用
 
 理由是显而易见的，回调函数是我们定义需要外部实现的函数，为了外部的实现尽量简单，我们应该避免使用optional参数，除非非常确定。如果有optional参数的场景，或许我们应该新增一个不包含该参数的回调函数定义。
+
+## 6.不要写仅仅参数长度不同的多个方法重载，应该使用optional参数
+
+请不要按照下面的方法写代码：
+
+```
+/* WRONG */
+interface Example {
+  diff(one: string): number;
+  diff(one: string, two: string): number;
+  diff(one: string, two: string, three: boolean): number;
+}
+```
+
+可以看到上面的返回值是完全相同的，后面的重载方法仅仅是多了几个变量这里推荐用optional写一个方法：
+
+```
+/* OK */
+interface Example {
+  diff(one: string, two?: string, three?: boolean): number;
+}
+```
+
+```
+function fn(x: (a: string, b: number, c: number) => void) {}
+var x: Example = {...};
+fn(x.diff);
+```
+
+上面的fn(x.diff)在Example使用重载的写法时是可以的，但是当Example是optional参数的写法会报错。但我们希望它报错，因为b和c的类型是不符合的。
+
+Example使用重载的写法时是可以的，原因是TypeScript的方法前面在调用时候可以允许写入多余的参数。
+
+另外，还有一点，optional的参数是可以传入undefined的，但是第一种写法通过方法重载是不可以的。
+
+```
+var x: Example;
+// 使用方法重载时会报错，因为undefined不能赋值给string类型
+// 使用optional时，就不会报错
+x.diff("something", true ? undefined : "hour");
+```
+
+## 7.泛型的类型定义应该至少出现在两个地方
+
+比如下面的代码
+
+```
+function greet<Str extends string>(s: Str) {
+  console.log("Hello, " + s);
+}
+
+greet("world");
+```
+
+就没有必要使用泛型，直接这样写就好：
+
+```
+function greet(s: string) {
+  console.log("Hello, " + s);
+}
+```
+
+## 8.请勿用一个字母表示泛型类型
+
+我们在最初学习泛型时，可能发现官方的文档也会使用一个字母来表示泛型，但是这个缺点很明显----很难一下子看出类型的含义。回想一下，我们在对变量其起名字的时候，都会避免用`a`,`b`, `c`这样的名字，因为我们知道这样很难看出其含义。
+
+❌
+
+```
+function head<T> (arr: T[]): T | undefined {
+  return arr[0]
+}
+```
+
+✅
+
+```
+function head<Element> (arr: Element[]): Element | undefined {
+  return arr[0]
+}
+```
+
+## 9.堤防枚举陷阱
+
+目前看来，枚举在我们项目中应用得十分广泛。枚举定义为数字类型时，会出现下面的问题：
+
+```
+enum UserResponse {
+  No = 0,
+  Yes = 1,
+}
+ 
+function respond(recipient: string, message: UserResponse): void {
+  // ...
+}
+ 
+respond("Princess Caroline", 2);
+```
+
+UserResponse的定义只有`0`和`1`，但是调用的时候传值`2`是不会报错的。使用数字作为枚举的值的时候，需要特别注意这一点。
+
+除了上述需要避免的地方，下面有一些写TypeScript的小tips：
