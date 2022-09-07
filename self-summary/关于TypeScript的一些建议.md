@@ -202,14 +202,109 @@ enum UserResponse {
   No = 0,
   Yes = 1,
 }
- 
+
 function respond(recipient: string, message: UserResponse): void {
   // ...
 }
- 
+
 respond("Princess Caroline", 2);
 ```
 
 UserResponse的定义只有`0`和`1`，但是调用的时候传值`2`是不会报错的。使用数字作为枚举的值的时候，需要特别注意这一点。
 
 除了上述需要避免的地方，下面有一些写TypeScript的小tips：
+
+## 1.使用never保证全部的遍历
+
+```
+interface Circle {
+  kind: "circle";
+  radius: number;
+}
+
+interface Square {
+  kind: "square";
+  sideLength: number;
+}
+type Shape = Circle | Square;
+
+function getArea(shape: Shape) {
+  switch (shape.kind) {
+    case "circle":
+      return Math.PI * shape.radius ** 2;
+    case "square":
+      return shape.sideLength ** 2;
+    default:
+      const _exhaustiveCheck: never = shape;
+      return _exhaustiveCheck;
+  }
+}
+```
+
+任何类型的值都不能赋予给`never`类型，所以我们可以在default中这样写来判断自己是否在switch中列举了所有的case。
+
+## 2.传递组件参数类型
+
+有时候我们需要传递一个组件到另一个组件作为child进行布局,常用的类型有下面两种：
+
+```
+interface AppProps {
+  children?: React.ReactNode; 
+  childrenElement: JSX.Element; 
+}
+```
+
+总的来说，更加推荐使用`React.ReactNode`。按照Facebook的开发者的[表述](https://github.com/typescript-cheatsheets/react/issues/57)：
+
+`JSX.Element`是`React.createElement`的返回值，但`React.ReactNode`是组件所有可能的返回值组合。
+
+## 3.从类型中创造新的类型
+
+TypeScript的类型系统十分强大，它允许你依据别的类型来创造自己的类型。
+
+最简单的概念是泛型，TypeScript提供了大量的类型操作。我们也可以用已经有的值来表示类型。
+
+通过结合这众多的类型操作符，我们可以进行复杂的类型操作，并且使其简明且可维护。下面的操作均是对已有的类型或者值来进行操作，来描述一个新的类型：
+
+- [泛型](https://www.typescriptlang.org/docs/handbook/2/generics.html) - 可带参数的类型
+- [Keyof 类型操作符](https://www.typescriptlang.org/docs/handbook/2/keyof-types.html) - 使用 `keyof` 操作符来创建新的类型
+- [Typeof 类型操作符](https://www.typescriptlang.org/docs/handbook/2/typeof-types.html) - 使用 `typeof` 操作类创建新的类型
+- [索引访问类型](https://www.typescriptlang.org/docs/handbook/2/indexed-access-types.html) - 通过 `Type['a']` 语法来创建一系列类型
+- [条件类型](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html) - 有条件判断的类型
+- [转换类型](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) - 转换已有的类型来获取新的类型
+- [模版字面类型](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html) - 通过模版字符串表示的转换类型
+
+### 4.实用类型
+
+TypeScript提供了一些实用的类型转换，下面举几个例子：
+
+ReturnType<Type>:构造一个由函数的返回类型组成的类型
+
+Omit<Type, Keys>:构造一个Type组成并删除Type中Keys的类型
+
+```
+// inside some library - return type { baz: number } is inferred but not exported
+function foo(bar: string) {
+  return { baz: 1 };
+}
+
+//  inside your app, if you need { baz: number }，使用ReturnType
+type FooReturn = ReturnType<typeof foo>; // { baz: number }
+
+//use Omit
+interface Todo {
+  title: string;
+  description: string;
+  completed: boolean;
+  createdAt: number;
+}
+ 
+type TodoPreview = Omit<Todo, "description">;
+const todo: TodoPreview = {
+  title: "Clean room",
+  completed: false,
+  createdAt: 1615544252770,
+};
+```
+
+更多的实用操作可以参考[Utility Types](https://www.typescriptlang.org/docs/handbook/utility-types.html)
