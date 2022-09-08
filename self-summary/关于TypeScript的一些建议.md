@@ -12,7 +12,7 @@ TypeScript的两大特性帮我们解决了JavaScript中`过于灵活`的问题�
 
 ## 静态类型检查与报错
 
-上面提到，JavaScript可以随时随地得改变变量的类型，使得代码很难看出其运行的结果，很可能我们写了几百行代码后，运行起来才发现是错误的。TypeScript可以让这个错误在书写代码的时期就让开发者感知到。
+上面提到，JavaScript可以随时随地得改变变量的类型，使得代码很难看出其运行的结果，很可能我们写了几百行代码后，运行起来才发现是错误的。TypeScript可以让这个错误在编写代码的时期就让开发者感知到。
 
 另外，对于一些场景，比如：
 
@@ -34,7 +34,7 @@ user.location; // returns undefined
 
 ## 类型推断与代码提示
 
-TypeScript的类型推断十分强大，不仅仅针对复制后变量类型的确定。TypeScript能非常准确得得到函数的返回值类型，即使这个函数体中包含了if-else,switch等等复杂的条件判断，TypeScript也能分析出最终的返回类型。
+TypeScript的类型推断十分强大，不仅仅是针对赋值后变量类型的确定这种简单场景。TypeScript能非常准确得得到函数的返回值类型，即使这个函数体中包含了if-else,switch等等复杂的条件判断，TypeScript也能分析出最终的返回类型。
 
 基于强大的类型推断，代码提示让开发者更加便捷得进行开发。无需记住这些变量的类型或者对象的变量，TypeScript能及时提示你应该用哪些变量或者方法。
 
@@ -104,7 +104,7 @@ type Shape = Circle | Square;
 
 哪一种更好呢？
 
-虽然前者看起来更加简单，但在使用的时候发现用法十分复杂。因为它没有表达出只有圆有半径，方形有边长这一信息。在这种定义下，TypeScript无法帮助我们做到完备的类型检查。比如，在确定了kind为circle的情况下，TypeScript仍然不能确定可以获取到radius的值，它依然可能是undefined的。
+虽然前者的定义看起来更加简单，但在使用的时候会发现用法十分复杂。因为它没有表达出只有圆有半径，方形有边长这一信息。在这种定义下，TypeScript无法帮助我们做到完备的类型检查。比如，在确定了kind为circle的情况下，TypeScript仍然不能确定可以获取到radius的值，它依然可能是undefined的。
 
 反观后者，虽然写起来略复杂，但很清晰得表达出了类型的信息。当确定kind为circle的情况下，radius就一定有值。
 
@@ -258,7 +258,47 @@ interface AppProps {
 
 `JSX.Element`是`React.createElement`的返回值，但`React.ReactNode`是组件所有可能的返回值组合。
 
-## 3.从类型中创造新的类型
+类似的，对于官方定义组件style，也优先使用官方定义的stypeProps，如`ButtonProps`,`TextProps`等。
+
+## 3.对于类型转换，优先使用is来进行判断，而不是as进行强转
+
+大部分情况，我们都不需要进行类型的判断，但有些时候，类型的判断是不可避免的。特别是因为后台的API或者遗留代码不够好的情况。当遇到这样的情况时，可能出现这样的代码：
+
+```
+const myApiResult = await callApi("url.com/endpoint") as IApiResult
+```
+
+这样的强转是很危险的，还有更危险的：
+
+```
+const myApiResult = await callApi("url.com/endpoint") as any
+```
+
+这两种写法都进行了强转，后者更差，如我们最上面说的，any让代码回归到了最原始的JavaScript的写法。
+
+此时我们可以自定义类型守护断言`response is IApiResult`
+
+```
+interface IApiResponse { 
+   bar: string
+}
+const callFooApi = async (): Promise<IApiResponse> => {
+ let response = await httpRequest('foo.api/barEndpoint') //returns unknown
+ if (responseIsbar(response)) {
+   return response
+ } else {
+   throw Error("response is not of type IApiResponse")
+ }
+}
+const responseIsBar = (response: unknown): response is IApiResponse => {
+    return (response as IApiResponse).bar !== undefined
+        && typeof (response as IApiResponse).bar === "string"
+}
+```
+
+通过这样写，我们就能确保类型的正确，并且当`responseIsBar`返回true的时候，它所包含的模块内部的response，typeScript默认它就是IApiResponse类型，就无需进行类型判断了。
+
+## 4.从类型中创造新的类型
 
 TypeScript的类型系统十分强大，它允许你依据别的类型来创造自己的类型。
 
@@ -274,13 +314,11 @@ TypeScript的类型系统十分强大，它允许你依据别的类型来创造�
 - [转换类型](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) - 转换已有的类型来获取新的类型
 - [模版字面类型](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html) - 通过模版字符串表示的转换类型
 
-### 4.实用类型
+### 5.实用类型转换
 
 TypeScript提供了一些实用的类型转换，下面举几个例子：
 
-ReturnType<Type>:构造一个由函数的返回类型组成的类型
-
-Omit<Type, Keys>:构造一个Type组成并删除Type中Keys的类型
+**ReturnType<Type>**:构造一个由函数的返回类型组成的类型
 
 ```
 // inside some library - return type { baz: number } is inferred but not exported
@@ -290,15 +328,18 @@ function foo(bar: string) {
 
 //  inside your app, if you need { baz: number }，使用ReturnType
 type FooReturn = ReturnType<typeof foo>; // { baz: number }
+```
 
-//use Omit
+**Omit<Type, Keys>**:构造一个Type组成并删除Type中Keys的类型
+
+```
 interface Todo {
   title: string;
   description: string;
   completed: boolean;
   createdAt: number;
 }
- 
+
 type TodoPreview = Omit<Todo, "description">;
 const todo: TodoPreview = {
   title: "Clean room",
