@@ -40,6 +40,8 @@ TypeScript的类型推断十分强大，不仅仅是针对赋值后变量类型�
 
 TypeScript如此强大，但有时候需要我们用正确的方式写代码，才能充分利用其特性。后文是一些建议。
 
+# Dos and Don'ts
+
 ## 1.非必要不要使用any作为变量的类型
 
 这个可能是每一个关于TypeScript建议为主题的博客都会提到的一点，因为它十分重要。
@@ -214,6 +216,8 @@ UserResponse的定义只有`0`和`1`，但是调用的时候传值`2`是不会�
 
 除了上述需要避免的地方，下面有一些写TypeScript的小tips：
 
+# Tips
+
 ## 1.使用never保证全部的遍历
 
 ```
@@ -314,7 +318,7 @@ TypeScript的类型系统十分强大，它允许你依据别的类型来创造�
 - [转换类型](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) - 转换已有的类型来获取新的类型
 - [模版字面类型](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html) - 通过模版字符串表示的转换类型
 
-### 5.实用类型转换
+## 5.实用类型转换
 
 TypeScript提供了一些实用的类型转换，下面举几个例子：
 
